@@ -1,14 +1,23 @@
-FROM python:3.11 as builder
-ADD requirements.txt /tmp/
-RUN apt update && apt install -y git && pip3 install --user -r /tmp/requirements.txt && rm /tmp/requirements.txt
+FROM python:3.9.7-slim-buster
+WORKDIR .
+COPY . .
 
-
-FROM python:3.11-slim
-WORKDIR /ytdlbot/ytdlbot
-ENV TZ=Europe/London
-
-RUN apt update && apt install -y --no-install-recommends --no-install-suggests ffmpeg vnstat git aria2
-COPY --from=builder /root/.local /usr/local
-COPY . /ytdlbot
-
-CMD ["/usr/local/bin/supervisord", "-c" ,"/ytdlbot/conf/supervisor_main.conf"]
+RUN apt-get update
+RUN apt-get update -y
+RUN apt-get install -y build-essential
+RUN apt -y install curl
+RUN apt-get -y install git
+RUN git clone https://github.com/axiomatic-systems/Bento4.git && \
+cd Bento4 &&\
+apt-get -y install cmake && \
+mkdir cmakebuild && \ 
+cd cmakebuild/ && \
+cmake -DCMAKE_BUILD_TYPE=Release .. &&\
+make &&\ 
+make install
+RUN apt-get install -y aria2
+RUN apt -qq update && apt -qq install -y git wget pv jq python3-dev ffmpeg mediainfo
+RUN apt install ffmpeg
+RUN pip3 install -r requirements.txt
+CMD gunicorn app:app & python3 main.py
+#!git clone https://github.com/axiomatic-systems/Bento4.git && cd Bento4 && apt-get -y install cmake && mkdir cmakebuild && cd cmakebuild/ && cmake -DCMAKE_BUILD_TYPE=Release .. && make && make install
